@@ -63,6 +63,44 @@ module.exports = (app, passport) => {
     });
 
     /**
+     * GET /user/login
+     * get login view
+     * */
+    app.get('/user/login', (req, res) => {
+        res.render('userLogin.hbs');
+    });
+
+    /**
+     * POST /user/login
+     * user login
+     * */
+    app.post('/user/login', passport.authenticate('local', {
+        failureRedirect: '/user/loginfail',
+    }),(req,res)=>{
+        res.set("apiKey", req.session.passport.user.apiKey).status(200).send({
+            Login: {
+                error: false,
+                message: "success",
+                user: {
+                    "name": req.session.passport.user.name,
+                    "email": req.session.passport.user.email,
+                    "image": req.session.passport.user.image
+                }
+            }
+        });
+    });
+
+    /**
+     * GET /user/loginfail
+     * when authentication fails
+     * */
+    app.get('/user/loginfail', (req, res) => {
+        console.log("failed")
+        res.status(200).send({Login: {error: true, message: "login fail"}});
+        // res.render('userLogin.hbs',{error:"enter valid username or password"})
+    })
+
+    /**
      * PUT /user/image
      * */
     app.put('/user/image', (req, res) => {
@@ -87,49 +125,20 @@ module.exports = (app, passport) => {
     })
 
     /**
-     * GET /user/login
-     * get login view
+     * PUT /user/update
+     * update user details
      * */
-    app.get('/user/login', (req, res) => {
-        res.render('userLogin.hbs');
-    });
-
-    /**
-     * POST /user/login
-     * user login
-     * */
-    app.post('/user/login', passport.authenticate('local', {
-        successRedirect: '/user/profile',
-        failurRedirect: '/user/fail',
-    }));
-
-    /**
-     * GET /user/profile
-     * get user profile details
-     * */
-    app.get('/user/profile', (req, res) => {
-        res.set("apiKey", req.session.passport.user.apiKey).status(200).send({
-            Login: {
-                error: false,
-                message: "success",
-                user: {
-                    "name": req.session.passport.user.name,
-                    "email": req.session.passport.user.email,
-                    "_id": req.session.passport.user.id
-                }
+    app.put('/user/update',(req,res)=>{
+        console.log("Start update : ",req.body.name)
+        console.log("id: ",req.user.id)
+        User.findOneAndUpdate({_id:req.user.id},{$set:{name:req.body.name}},{new:true},(err,user)=>{
+            if(err || !user){
+                res.status(200).send({error:true,message:"unable to update"})
+            }else{
+                res.status(200).send({error:false,message:"updated",user:{user}})
             }
-        });
-        //res.render('userProfile.hbs',req.session.passport.user)
-    })
-
-    /**
-     * GET /user/fail
-     * when authentication fails
-     * */
-    app.get('/user/fail', (req, res) => {
-        res.status(200).send({Login: {error: true, message: "login fail"}});
-        // res.render('userLogin.hbs',{error:"enter valid username or password"})
-    })
+        })
+    });
 
     /**
      * GET /user/logout
@@ -148,18 +157,30 @@ module.exports = (app, passport) => {
      * get list of all user details
      * */
     app.get('/user/get', (req, res) => {
-<<<<<<< HEAD
         console.log("start");
         User.find().then(user => {
             res.send({"users": user})
         }, e => {
-=======
-        /* req.user //to get user set by middleware */
-        User.find().then(user=>{
-            res.send({"users":user})
-        },e=>{
->>>>>>> 6bc488d98013c9714d36e80229b4d2d392a95fee
-            res.send(e)
+            console.log("error: "+e)
+            res.send({"users":null})
         })
+    });
+
+    /**
+     * DELETE /user/remove
+     * delete user from list
+     *
+     * */
+    app.delete('/user/remove',(req,res)=>{
+       console.log("user: ",req.user);
+       User.findByIdAndRemove(req.user.id,(err,user)=>{
+           if(err){
+               console.log("delete error: ",err)
+               res.status(200).send({error:true,message:"unable to delete"});
+           }else{
+               console.log("deleted")
+               res.status(200).send({error:false,message:"user deleted"});
+           }
+       });
     });
 };

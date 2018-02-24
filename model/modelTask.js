@@ -19,7 +19,7 @@ const schemaTask = new mongoose.Schema({
     },
     image: {
         type:String,
-        default:"user.png"
+        default:"task.png"
     },
     user: {
         type: mongoose.Schema.ObjectId

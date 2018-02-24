@@ -50,9 +50,10 @@ module.exports = (passport) => {
                     if(!result){
                         // if password not match
                         console.log('enter valid details');
-                        return done(null,false);
+                        return done(false,null);
                     }else{
                         // when password match
+                        console.log("success from local")
                         return done(false, user);
                     }
                 })

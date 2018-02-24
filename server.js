@@ -12,13 +12,14 @@ const express = require('express'),
     {mongoose} = require('./config/dbConnect'),
     {User} = require('./model/modelUser'),
     {Task} = require('./model/modelTask'),
-    base64Img = require('base64-img'),
     fs = require('fs'),
     hbs = require('hbs'),
     passport = require('passport'),
-    session = require('express-session');
+    session = require('express-session'),
+    fileUpload = require("express-fileupload");
 
 app = express();
+app.use(fileUpload());
 app.use(session({secret: 'user'}));
 app.set('view engine', 'hbs');
 app.use(express.static(__dirname + '/views/user/'));
@@ -29,64 +30,32 @@ app.use(bodyParser({limit: '500mb', extended: true}));
 app.use((req, res, next) => {
     let log = `${new Date().toString()} : ${req.method} ${req.url}`;
     fs.appendFile('./server.log', log + "\n");
-
-<<<<<<< HEAD
-    if (req.url.toString() === "/user/login" || req.url.toString() === "/user/register" || req.url.toString() == "/image/user.*") {
+    console.log("in middleware : ",req.body);
+    if (req.url.toString() === "/user/login" || req.url.toString() === "/user/register" || req.url.toString() === "/image/user.*" || req.url.toString() === "/user/loginpass" || req.url.toString() === "/user/loginfail") {
         next();
     } else {
         User.findOne({"apiKey": req.header("apiKey")}).then(user => {
             if (user) {
                 req.user = user;
                 next();
-=======
-    // validate user for api apart of login and register
-    if (req.url.toString() === "/user/login" || req.url.toString() === "/user/register") {
-        next();
-    } else {
-        // check for valid apiKey
-        /*User.findOne({"apiKey": req.header("apiKey")}).then(user => {
-            if (user) {
-                // check user want to check personal informaion
-                if (req.body.user || req.query.user) {
-                    if (req.body.user === user.id || req.query.user === user.id) {
-                        // user want to check own personal information
-                        next();
-                    } else {
-                        // user want check other's personal information
-                        res.status(400).send({error: true, message: "you are not authorize to use this process"})
-                    }
-                } else {
-                    // if user check own information
-                    next();
-                }
-                // res.send(user)
->>>>>>> 6bc488d98013c9714d36e80229b4d2d392a95fee
             } else {
                 res.status(401).send({error: true, message: "unauthorized user"});
             }
-        })*/
-
-        User.findByApiKey(req.header('apiKey'), (user) => {
-            if (user) {
-                req.user = user;
-                next()
-            } else {
-                res.status(400).send("unauthorized user")
-            }
-        });
+        })
     }
 });
 app.use(passport.initialize());
 app.use(passport.session());
-// include passport local authentication
-require('./config/passportLocalAuth')(passport);
-// include user routes
+require('./config/passportLocalAuth')(passport)
 require('./routes/routeUser')(app, passport);
-// includes task routes
 require('./routes/routeTask')(app);
+require('./testDemo/tes')(app);
 
-<<<<<<< HEAD
-// testing image upload
+/**
+ * save image
+ * POST /upload
+ * @param ${String} image base64 string
+ * */
 app.post('/upload', (req, res) => {
     console.log("start image")
     var isUpload = true;
@@ -96,7 +65,7 @@ app.post('/upload', (req, res) => {
     fs.writeFile(imagePath, new Buffer(imagString, "base64"), (err) => {
         if (err) {
             isUpload = false;
-            res.send({error:true,message:err})
+            res.send({error: true, message: err})
         }
     });
     if (isUpload) {
@@ -109,12 +78,32 @@ app.post('/upload', (req, res) => {
             }
         })
     } else {
-        res.send("thaygyu bhai");
+        res.send({error: true, message: "image can't be uploaded"});
     }
 })
 
-=======
->>>>>>> 6bc488d98013c9714d36e80229b4d2d392a95fee
+/**
+ * save video
+ * */
+app.post("/upload/video", (req, res) => {
+    console.log("start video upload : ",req );
+    if(!req.files){
+        res.send({error:true,message:"no file found"});
+    }else{
+        const video = req.files.video;
+        const name = Date.now() + ".mp4";
+        const videoPath = './image/video/' + name;
+
+        video.mv(videoPath,(err)=>{
+            if(err){
+                res.send({error:true,message:"Unable to upload"})
+            }else{
+                res.send({error:false,message:"uploaded"})
+            }
+        })
+    }
+});
+
 app.listen(config.port, () => {
     console.log(`server listen on port no ${config.port}`)
 });
